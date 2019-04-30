@@ -1,2 +1,2 @@
 # kubaru
-Kubaru is a JSON Data Editor written in PHP. An Ashiva Component.
+Kubaru is a quick and simple JSON Data Editor written in PHP. An Ashiva Component.
