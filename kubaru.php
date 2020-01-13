@@ -21,60 +21,226 @@ echo '<!DOCTYPE html>
 
 <form class="kubaru" method="post" action="https://'.$_SERVER['HTTP_HOST'].$_SERVER['SCRIPT_NAME'].'?kubaru=true">
 
-<h1 class="kubaruHeading">Kubaru by Rounin Media</h1>
+<h1 class="kubaruHeading">Kubaru by Rounin Media</h1>';
 
-<input type="submit" class="readPagesSubmit" value="Update Pages" />
-';
+if ((!isset($_GET['kubaru'])) || ($_GET['kubaru'] !== 'true')) {
+
+  echo '<input type="submit" class="readPagesSubmit" value="Update Pages" />';
+}
 
 
 if ((isset($_GET['kubaru'])) && ($_GET['kubaru'] === 'true')) {
 
-  $Skip_Folders = array('.', '..', 'index.php', 'page.json');
-
-  $FilePath = $_SERVER['DOCUMENT_ROOT'].'/.assets/content/pages/nail-products/';
-
-  $Subfolders = scandir($FilePath);
-
-  for ($i = 0; $i < count($Subfolders); $i++) {
-
-    if (in_array($Subfolders[$i], $Skip_Folders)) continue;
-
-    $SubFilePath = $FilePath.'/'.$Subfolders[$i];
-    $SubSubfolders = scandir($SubFilePath);
-
-    for ($j = 0; $j < count($SubSubfolders); $j++) {
-
-      if (in_array($SubSubfolders[$j], $Skip_Folders)) continue;
-
-      $Page_To_Read = 'https://'.$_SERVER['HTTP_HOST'].'/nail-products/'.$Subfolders[$i].'/'.$SubSubfolders[$j].'/';
-
-      echo '<p>'.$Page_To_Read.'</p>';
+  echo '<button type="button" onclick="window.location = \'https://'.$_SERVER['HTTP_HOST'].$_SERVER['SCRIPT_NAME'].'\';">Reset Kubaru</button>';
 
 
-      $Page_Manifest = file_get_contents($_SERVER['DOCUMENT_ROOT'].'/.assets/content/pages/nail-products/'.$Subfolders[$i].'/'.$SubSubfolders[$j].'/page.json');
-      $Page_Manifest_Array = json_decode($Page_Manifest, TRUE);
+  function Gather_Pages($Array) {
 
-      $Page_Manifest_Array['Document_Overview']['Document_Information']['Preload_Assets'][1][1]['URL'] = '/.assets/design/elements/fonts/scotia-beauty-logo.woff2';
-      $Saved_Ashiva_Page_Build = $Page_Manifest_Array['Ashiva_Page_Build'];
-      unset($Page_Manifest_Array['Ashiva_Page_Build']);
-      unset($Page_Manifest_Array['Structured_Data']);
+    $Skip_Folders = array('.', '..', 'cgi-bin', '.assets', 'api', 'assets', 'content', 'data', 'developers', 'elements', 'email-confirmation', 'form', 'forms', 'media', 'scripts');
 
-      $New_JSON_Data = json_encode($Page_Manifest_Array, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
-      $New_JSON_Data = substr($New_JSON_Data, 0, -1);
-      $New_JSON_Data .= ', "Document_Data" : {"JSON_Linked_Data": {"Directory" : {"Page" : ["Product"], "Elements" : {"Breadcrumbs" : "Breadcrumbs"}, "Global" : ["Organization"]}, "Product": {}}, "Content_Data" : {"Directory" : {"Global" : ["SB_Translations"], "Elements" : {"" : ""}, "Page" : [""]}}}, "Ashiva_Page_Build": {"Page_Scaffold": "Global", "Page_Stylesheets": ["Global"], "Page_Scripts": ["Global"], "Ashiva_Page_Modules": [""]}}';
-      
-      $New_JSON_Data_Array = json_decode($New_JSON_Data, TRUE);
-      $New_JSON_Data_Ready = json_encode($New_JSON_Data_Array, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    for ($i = 0; $i < count($Array); $i++) {
 
-      $fp = fopen($_SERVER['DOCUMENT_ROOT'].'/.assets/content/pages/nail-products/'.$Subfolders[$i].'/'.$SubSubfolders[$j].'/page.json', 'w');
-      fwrite($fp, $New_JSON_Data_Ready);
-      fclose($fp);
+      $Subfolders = scandir($Array[$i]);
+
+      for ($j = 0; $j < count($Subfolders); $j++) {
+
+        if (in_array($Subfolders[$j], $Skip_Folders)) continue;
+        if (!is_dir($Array[$i].'/'.$Subfolders[$j])) continue;
+
+        $Array[] = $Array[$i].'/'.$Subfolders[$j];
+      }
+
+      $Array = array_unique($Array);
     }
+
+    return $Array;
+  }
+
+  $URL_List = array($_SERVER['DOCUMENT_ROOT']);
+  $URL_List = Gather_Pages($URL_List);
+
+  $Pages = array();
+
+  echo '<ol>';
+
+  for ($i = 0; $i < count($URL_List); $i++) {
+
+    $Full_Path = str_replace($_SERVER['DOCUMENT_ROOT'], $_SERVER['DOCUMENT_ROOT'].'/.assets/content/pages', $URL_List[$i]);
+    $Full_Path .= '/page.json';
+    $Full_Path = str_replace('/pages/page.json', '/pages/scotia-beauty-homepage/page.json', $Full_Path);
+    $Full_Path = str_replace('/de/page.json', '/de/scotia-beauty-startseite/page.json', $Full_Path);
+    
+    echo '<li>';
+
+    if (!file_exists($Full_Path)) {
+
+      echo '<strong>MISSING:</strong> ';
+    }
+
+    echo $Full_Path.'</li>';
+
+    $Pages[] = $Full_Path;
+  }
+
+  echo '</ol>';
+
+
+
+
+  for ($i = 0; $i < count($Pages); $i++) {
+
+
+    $Page_Manifest_JSON = file_get_contents($Pages[$i]);
+    $Page_Manifest_Array = json_decode($Page_Manifest_JSON, true);
+
+
+    // DIRECTIVES
+
+
+    if (strpos($Pages[$i], '/nail-products/') !== FALSE) {
+
+      unset($Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty']);
+
+      $Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty'] = [];
+
+      $Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty'][] = 'SB_Body_Data';
+      $Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty'][] = 'SB_Colour_Charts';
+      $Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty'][] = 'SB_Nail_Categories';
+      $Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty'][] = 'SB_Translations::EN';
+      $Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty'][] = 'SB_nextPage';
+    }
+
+
+/*
+    if (strpos($Pages[$i], '/nail-products/') !== FALSE) {
+
+      unset($Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty'][array_search('SB_Next_Page', $Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty'])]);
+    }
+*/
+
+    /*
+
+    if (strpos($Pages[$i], '/nail-products/') !== FALSE) {
+
+      $Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty'][] = 'SB_nextPage';
+      sort($Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty']);
+    }
+
+    if (strpos($Pages[$i], '/nail-products/') !== FALSE) {
+
+      $Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['Directory']['Page']  = array('SB_Product');
+      $Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['Directory']['Elements']  = array('Ashiva_Breadcrumbs');
+      $Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['Directory']['Global']  = array('Ashiva_Organization');
+      $Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['Directory']['Page']  = array('SB_Product');
+      $Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['SB_Product']  = array('');
+    }
+
+    if (strpos($Pages[$i], '/nail-products/') !== FALSE) {
+
+      unset($Page_Manifest_Array['Ashiva_Page_Modules']);
+      $Page_Manifest_Array['Ashiva_Page_Build']['Modules'] = array('Scotia_Beauty' => array('SB_Body_Data', 'SB_Colour_Charts', 'SB_Nail_Categories', 'SB_Translations::EN'));
+    }
+
+    $Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty'][] = 'SB_Nail_Categories';
+    sort($Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty']);
+
+    $Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty'] = array_unique($Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty']);
+    sort($Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty']);
+
+    $Saved_Modules = $Page_Manifest_Array['Ashiva_Page_Build']['Modules'];
+    $Page_Manifest_Array['Ashiva_Page_Build']['Modules'] = array();
+    $Page_Manifest_Array['Ashiva_Page_Build']['Modules']['Scotia_Beauty'] = $Saved_Modules;
+
+    $Page_Manifest_Array['Ashiva_Page_Build']['Modules'][] = 'SB_Body_Data';
+
+    $Page_Manifest_Array['Ashiva_Page_Build']['Modules'] = array('SB_Colour_Charts', 'SB_Translations::EN');
+    unset($Page_Manifest_Array['Ashiva_Page_Modules']);
+
+    $Page_Manifest_Array['Ashiva_Page_Modules']['Directory']['Current'] = array('SB_Colour_Charts', 'SB_Translations::EN');
+
+    $Page_Manifest_Array['Ashiva_Page_Modules']['Directory']['Global'] = array();
+
+    unset($Page_Manifest_Array['Ashiva_Page_Build']['Ashiva_Page_Modules']);
+    unset($Page_Manifest_Array['Document_Data']['Content_Data']);
+
+    $Page_Manifest_Array['Ashiva_Page_Modules'] = array();
+    $Page_Manifest_Array['Ashiva_Page_Modules']['Directory'] = array();
+    $Page_Manifest_Array['Ashiva_Page_Modules']['Directory']['Global'] = array('SB_Colour_Charts', 'SB_Translations');
+    $Page_Manifest_Array['Ashiva_Page_Modules']['Directory']['Current'] = array();
+    $Page_Manifest_Array['Ashiva_Page_Modules']['Directory']['Page'] = array();
+    $Page_Manifest_Array['Ashiva_Page_Modules']['Directory']['Extensions'] = array();
+
+    $Page_Manifest_Array['Document_Data']['Content_Data']['Directory']['Global'] = array('SB_Colour_Charts', 'SB_Translations');
+
+    if (strpos($Pages[$i], '/nail-products/') !== FALSE) {
+
+      $Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['Directory']['Page'] = array('SB_Product');
+      unset($Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['Product::Product']);
+      $Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['SB_Product'] = [];
+    }
+
+    $Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['Directory']['Elements'] = array('Ashiva_Breadcrumbs');
+    $Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['Directory']['Global'] = array('Ashiva_Organization');
+
+
+    $Page_Manifest_Array['Document_Overview']['Document_Information']['Document_Language'] = array('en', 'GB');
+
+    
+    if (strpos($Pages[$i], '/de/') !== FALSE) {
+
+      $Page_Manifest_Array['Document_Overview']['Document_Information']['Document_Language'] = array('de');
+    }
+
+        
+    unset($Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['Product']);
+
+    $Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['Directory']['Page'] = array();
+    $Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['Directory']['Elements'] = array('Breadcrumbs::Breadcrumbs');
+    $Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['Directory']['Global'] = array('Organization::Organization');
+
+    if ((strpos($Pages[$i], '/nail-products/') !== FALSE) && (count(explode('/', $Pages[$i])) > 13)) {
+
+      $Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['Directory']['Page'] = array('Product::Product');
+      $Page_Manifest_Array['Document_Data']['JSON_Linked_Data']['Product : Product'] = array();
+    }
+
+    $Page_Manifest_Array['Document_Data']['Content_Data']['Directory']['Global'] = array('SB_Colour_Charts::SB_Colour_Charts', 'SB_Translations::SB_Translations');
+    $Page_Manifest_Array['Document_Data']['Content_Data']['Directory']['Elements'] = array();
+    $Page_Manifest_Array['Document_Data']['Content_Data']['Directory']['Page'] = array();
+
+    */
+
+
+
+
+
+
+    $New_Page_Manifest_JSON = json_encode($Page_Manifest_Array, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+/*
+    echo '<pre>';
+    echo $Page_Manifest_JSON;
+
+    echo $New_Page_Manifest_JSON;
+    echo '</pre>';
+*/    
+    
+      //********************//
+     // WRITE DATA TO FILE //
+    //********************//
+
+    $fp = fopen($Pages[$i], 'w');
+    fwrite($fp, $New_Page_Manifest_JSON);
+    fclose($fp);
   }
 }
 
 
 echo '</form>
+
+<script>
+
+</script>
 
 </body>
 </html>';
